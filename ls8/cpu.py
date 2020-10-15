@@ -17,7 +17,7 @@ class CPU:
             'R4': 0,
             'R5': 0,
             'R6': 0,
-            'R7': 0xF4
+            'R7': self.ram[0xF4]
         }
         self.pc = 0
         self.ir = 0
@@ -27,27 +27,57 @@ class CPU:
         self.HLT = 0b00000001
         self.LDI = 0b10000010
         self.PRN = 0b01000111
+        self.MUL = 0b10100010
+        self.PUSH = 0b01000101
+        self.POP = 0b01000110
 
     def load(self):
         """Load a program into memory."""
 
         address = 0
 
+        if len((sys.argv)) != 2:
+            print(f'usage cpu.py progname')
+            sys.exit(1)
+
+        try:
+            with open(f'examples/{sys.argv[-1]}') as f:
+                for line in f:
+                    line = line.strip()
+
+                    if line == '' or line == '#' or line == '\n':
+                        continue
+
+                    try:
+                        str_value = line.split('#')[0]
+                        value = int(str_value, 2)
+
+                    except ValueError:
+                        print(f'Invalid command: {str_value}')
+                        sys.exit(2)
+
+                    self.ram[address] = value
+                    address += 1
+
+        except FileNotFoundError:
+            print(f'File not found {sys.argv[1]}')
+            sys.exit(3)
+
         # For now, we've just hardcoded a program:
 
-        program = [
-            # From print8.ls8
-            0b10000010,  # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111,  # PRN R0
-            0b00000000,
-            0b00000001,  # HLT
-        ]
+        # program = [
+        #     # From print8.ls8
+        #     0b10000010,  # LDI R0,8
+        #     0b00000000,
+        #     0b00001000,
+        #     0b01000111,  # PRN R0
+        #     0b00000000,
+        #     0b00000001,  # HLT
+        # ]
 
-        for instruction in program:
-            self.ram[address] = instruction
-            address += 1
+        # for instruction in program:
+        #     self.ram[address] = instruction
+        #     address += 1
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
@@ -55,6 +85,8 @@ class CPU:
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
         # elif op == "SUB": etc
+        if op == "MUL":
+            self.reg[reg_a] *= self.reg[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -80,10 +112,6 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        ir = self.pc
-
-        operand_a = self.ram_read(self.pc + 1)
-        operand_b = self.ram_read(self.pc + 2)
 
         halted = False
         count = 0
@@ -92,18 +120,37 @@ class CPU:
             instruction = self.ram[self.pc]
             num_operands = instruction >> 6
 
+            operand_a = self.ram_read(self.pc + 1)
+            operand_b = self.ram_read(self.pc + 2)
+
             # print(bin(instruction))
             # print(num_operands)
 
-            if instruction == self.HLT:
-                halted = True
-            if instruction == self.LDI:
-                reg = operand_a
-                num = int(operand_b)
-                self.ram_write(reg, num)
-            if instruction == self.PRN:
-                value = self.ram_read(operand_a)
-                print(value)
+            try:
+                if instruction == self.HLT:
+                    halted = True
+                if instruction == self.LDI:
+                    reg = operand_a
+                    num = operand_b
+                    self.reg[reg] = num
+                if instruction == self.PRN:
+                    value = self.reg[operand_a]
+                    print(value)
+                if instruction == self.MUL:
+                    reg_a = operand_a
+                    reg_b = operand_b
+                    self.alu('MUL', reg_a, reg_b)
+                if instruction == self.PUSH:
+                    self.reg['R7'] -= 1
+                    value = self.reg[operand_a]
+                    self.ram[self.reg['R7']] = value
+                if instruction == self.POP:
+                    value = self.ram[self.reg['R7']]
+                    self.reg[operand_a] = value
+                    self.reg['R7'] += 1
+
+            except:
+                print(f'Error on line {count} with {bin(instruction)}')
 
             if num_operands == 0:
                 self.pc += 1
@@ -114,7 +161,7 @@ class CPU:
 
             count += 1
 
-            if count == 10:
+            if count == 50:
                 halted = True
 
     def ram_read(self, address):
@@ -127,6 +174,8 @@ class CPU:
         self.mdr = value
         self.ram[self.mar] = self.mdr
 
+
+print(sys.argv)
 
 cpu = CPU()
 
