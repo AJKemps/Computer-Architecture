@@ -28,8 +28,11 @@ class CPU:
         self.LDI = 0b10000010
         self.PRN = 0b01000111
         self.MUL = 0b10100010
+        self.ADD = 0b10100000
         self.PUSH = 0b01000101
         self.POP = 0b01000110
+        self.CALL = 0b01010000
+        self.RET = 0b00010001
 
     def load(self):
         """Load a program into memory."""
@@ -45,19 +48,19 @@ class CPU:
                 for line in f:
                     line = line.strip()
 
-                    if line == '' or line == '#' or line == '\n':
+                    if line == '' or line[0] == '#' or line == '\n':
                         continue
+                    else:
+                        try:
+                            str_value = line.split('#')[0]
+                            value = int(str_value, 2)
 
-                    try:
-                        str_value = line.split('#')[0]
-                        value = int(str_value, 2)
+                        except ValueError:
+                            print(f'Invalid command: {line}')
+                            sys.exit(2)
 
-                    except ValueError:
-                        print(f'Invalid command: {str_value}')
-                        sys.exit(2)
-
-                    self.ram[address] = value
-                    address += 1
+                        self.ram[address] = value
+                        address += 1
 
         except FileNotFoundError:
             print(f'File not found {sys.argv[1]}')
@@ -128,18 +131,25 @@ class CPU:
 
             try:
                 if instruction == self.HLT:
+                    print('HLT')
                     halted = True
                 if instruction == self.LDI:
                     reg = operand_a
                     num = operand_b
                     self.reg[reg] = num
+                    print('LDI', reg, num)
                 if instruction == self.PRN:
+                    print('PRN')
                     value = self.reg[operand_a]
                     print(value)
                 if instruction == self.MUL:
                     reg_a = operand_a
                     reg_b = operand_b
                     self.alu('MUL', reg_a, reg_b)
+                if instruction == self.ADD:
+                    reg_a = operand_a
+                    reg_b = operand_b
+                    self.alu('ADD', reg_a, reg_b)
                 if instruction == self.PUSH:
                     self.reg['R7'] -= 1
                     value = self.reg[operand_a]
@@ -148,20 +158,38 @@ class CPU:
                     value = self.ram[self.reg['R7']]
                     self.reg[operand_a] = value
                     self.reg['R7'] += 1
+                if instruction == self.CALL:
+                    address = self.pc + 2
+                    self.reg['R7'] -= 1
+                    self.ram[self.reg['R7']] = address
+                if instruction == self.RET:
+                    print('RET')
+                    value = self.ram[self.reg['R7']]
+                    print(value)
+                    self.pc = value
+                    self.reg['R7'] += 1
 
             except:
-                print(f'Error on line {count} with {bin(instruction)}')
+                print(
+                    f'Error on line {count} with {bin(instruction)}')
 
-            if num_operands == 0:
-                self.pc += 1
-            elif num_operands == 1:
-                self.pc += 2
-            elif num_operands == 2:
-                self.pc += 3
+            if instruction == self.CALL:
+                print('CALL')
+                self.pc = self.reg[operand_a]
+                print(self.reg[operand_a])
+            elif instruction == self.RET:
+                continue
+            else:
+                if num_operands == 0:
+                    self.pc += 1
+                elif num_operands == 1:
+                    self.pc += 2
+                elif num_operands == 2:
+                    self.pc += 3
 
             count += 1
 
-            if count == 50:
+            if count == 100:
                 halted = True
 
     def ram_read(self, address):
@@ -181,4 +209,8 @@ cpu = CPU()
 
 cpu.load()
 
+print(cpu.ram)
+
 cpu.run()
+
+print(cpu.ram)
