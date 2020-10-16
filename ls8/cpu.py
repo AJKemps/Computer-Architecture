@@ -23,7 +23,12 @@ class CPU:
         self.ir = 0
         self.mar = 0
         self.mdr = 0
-        self.fl = 0
+        self.fl = {
+            'L': 0,
+            'E': 0,
+            'G': 0
+
+        }
         self.HLT = 0b00000001
         self.LDI = 0b10000010
         self.PRN = 0b01000111
@@ -33,6 +38,10 @@ class CPU:
         self.POP = 0b01000110
         self.CALL = 0b01010000
         self.RET = 0b00010001
+        self.CMP = 0b10100111
+        self.JMP = 0b01010100
+        self.JEQ = 0b01010101
+        self.JNE = 0b01010110
 
     def load(self):
         """Load a program into memory."""
@@ -90,6 +99,19 @@ class CPU:
         # elif op == "SUB": etc
         if op == "MUL":
             self.reg[reg_a] *= self.reg[reg_b]
+        if op == 'CMP':
+            if self.reg[reg_a] > self.reg[reg_b]:
+                self.fl['G'] = 1
+                self.fl['L'] = 0
+                self.fl['E'] = 0
+            elif self.reg[reg_a] < self.reg[reg_b]:
+                self.fl['L'] = 1
+                self.fl['G'] = 0
+                self.fl['E'] = 0
+            elif self.reg[reg_a] == self.reg[reg_b]:
+                self.fl['E'] = 1
+                self.fl['L'] = 0
+                self.fl['G'] = 0
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -150,6 +172,11 @@ class CPU:
                     reg_a = operand_a
                     reg_b = operand_b
                     self.alu('ADD', reg_a, reg_b)
+                if instruction == self.CMP:
+                    print('CMP', self.reg[operand_a], self.reg[operand_b])
+                    reg_a = operand_a
+                    reg_b = operand_b
+                    self.alu('CMP', reg_a, reg_b)
                 if instruction == self.PUSH:
                     self.reg['R7'] -= 1
                     value = self.reg[operand_a]
@@ -168,6 +195,24 @@ class CPU:
                     print(value)
                     self.pc = value
                     self.reg['R7'] += 1
+                if instruction == self.JMP:
+                    print('JMP')
+                    address = self.reg[operand_a]
+                    self.pc = address
+                if instruction == self.JEQ:
+                    print('JEQ')
+                    if self.fl['E'] == 1:
+                        address = self.reg[operand_a]
+                        self.pc = address
+                    else:
+                        self.pc += 2
+                if instruction == self.JNE:
+                    print('JNE')
+                    if self.fl['E'] == 0:
+                        address = self.reg[operand_a]
+                        self.pc = address
+                    else:
+                        self.pc += 2
 
             except:
                 print(
@@ -177,7 +222,7 @@ class CPU:
                 print('CALL')
                 self.pc = self.reg[operand_a]
                 print(self.reg[operand_a])
-            elif instruction == self.RET:
+            elif instruction == self.RET or instruction == self.JMP or instruction == self.JNE or instruction == self.JEQ:
                 continue
             else:
                 if num_operands == 0:
