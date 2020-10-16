@@ -153,15 +153,15 @@ class CPU:
 
             try:
                 if instruction == self.HLT:
-                    print('HLT')
+                    # print('HLT')
                     halted = True
                 if instruction == self.LDI:
                     reg = operand_a
                     num = operand_b
                     self.reg[reg] = num
-                    print('LDI', reg, num)
+                    # print('LDI', reg, num)
                 if instruction == self.PRN:
-                    print('PRN')
+                    # print('PRN')
                     value = self.reg[operand_a]
                     print(value)
                 if instruction == self.MUL:
@@ -173,7 +173,7 @@ class CPU:
                     reg_b = operand_b
                     self.alu('ADD', reg_a, reg_b)
                 if instruction == self.CMP:
-                    print('CMP', self.reg[operand_a], self.reg[operand_b])
+                    # print('CMP', self.reg[operand_a], self.reg[operand_b])
                     reg_a = operand_a
                     reg_b = operand_b
                     self.alu('CMP', reg_a, reg_b)
@@ -190,24 +190,24 @@ class CPU:
                     self.reg['R7'] -= 1
                     self.ram[self.reg['R7']] = address
                 if instruction == self.RET:
-                    print('RET')
+                    # print('RET')
                     value = self.ram[self.reg['R7']]
-                    print(value)
+                    # print(value)
                     self.pc = value
                     self.reg['R7'] += 1
                 if instruction == self.JMP:
-                    print('JMP')
+                    # print('JMP')
                     address = self.reg[operand_a]
                     self.pc = address
                 if instruction == self.JEQ:
-                    print('JEQ')
+                    # print('JEQ')
                     if self.fl['E'] == 1:
                         address = self.reg[operand_a]
                         self.pc = address
                     else:
                         self.pc += 2
                 if instruction == self.JNE:
-                    print('JNE')
+                    # print('JNE')
                     if self.fl['E'] == 0:
                         address = self.reg[operand_a]
                         self.pc = address
@@ -219,9 +219,9 @@ class CPU:
                     f'Error on line {count} with {bin(instruction)}')
 
             if instruction == self.CALL:
-                print('CALL')
+                # print('CALL')
                 self.pc = self.reg[operand_a]
-                print(self.reg[operand_a])
+                # print(self.reg[operand_a])
             elif instruction == self.RET or instruction == self.JMP or instruction == self.JNE or instruction == self.JEQ:
                 continue
             else:
@@ -254,8 +254,4 @@ cpu = CPU()
 
 cpu.load()
 
-print(cpu.ram)
-
 cpu.run()
-
-print(cpu.ram)
